@@ -14,23 +14,24 @@ class VK:
        response = requests.get(url, params={**self.params, **params})
        return response.json()
 
-   def user_foto(self):
+   def user_foto(self, album):
        url = 'https://api.vk.com/method/photos.get'
-       params = {'owner_id': self.id, 'album_id': 'wall', 'extended':'1','photo_sizes':'1'}
+       params = {'owner_id': self.id, 'album_id': album, 'extended':'1','photo_sizes':'1'}
        response = requests.get(url, params={**self.params, **params})
        return response.json()
 
-   def foto_dict(self):
+   def foto_dict(self, list_album):
        dict_foto = {}
-       for item in self.user_foto()['response']['items']:
-           like = item['likes']['count']
-           post_id = item['id']
-           max_size = 0
-           for foto in item['sizes']:
-               foto_size = int(foto['height']) * int(foto['width'])
-               if foto_size > max_size:
-                   max_size = foto_size
-                   dict_foto[f'like{like}_id{post_id}'] = [foto['url'], foto_size]
+       for album in list_album:
+            for item in self.user_foto(album)['response']['items']:
+               like = item['likes']['count']
+               post_id = item['id']
+               max_size = 0
+               for foto in item['sizes']:
+                   foto_size = int(foto['height']) * int(foto['width'])
+                   if foto_size > max_size:
+                       max_size = foto_size
+                       dict_foto[f'like{like}_id{post_id}'] = [foto['url'], foto_size]
        return dict_foto
 
 
@@ -47,12 +48,16 @@ if __name__ == '__main__':
     # response = requests.get(url, params=params)
     # pprint(response.json())
 
-    user_id = '2632492'
-    user_id = '19020548'
-    vk = VK(tokenVK, user_id)
-    print(vk.users_info())
+    user_id1 = '2632492'
+    vk1 = VK(tokenVK, user_id1)
+    user_id2 = '19020548'
+    vk2 = VK(tokenVK, user_id2)
+
+    print(vk2.users_info())
     # pprint(vk.user_foto())
-    pprint(vk.foto_dict())
+    z = vk2.foto_dict(['wall'])
+    pprint(z)
+    print(len(z))
 
 
 
