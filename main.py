@@ -82,7 +82,7 @@ class My_Ya(yadisk.YaDisk):
                 # print (foto_name,url[0])
                 if count > num:
                     break
-                self.upload_url(url[0], (f'{path}/{foto_name}.jpg'))
+                self.upload_url(url[0], (f'{path}/{foto_name}.jpg')) #загр файла на Я диск
                 count += 1
                 pbar.update()
 
@@ -135,12 +135,12 @@ if __name__ == '__main__':
 
     z = vk1.foto_dict(['wall', 'profile'])
 
-    with open(f"all_id_{user}.json", "w") as write_file:
-        json.dump(z, write_file)
-
-    z_sort = Ya.sort_dict(z)
-    with open(f"all_sort_id_{user}.json", "w") as write_file:
-        json.dump(z_sort, write_file)
+    # with open(f"all_id_{user}.json", "w") as write_file:
+    #     json.dump(z, write_file)
+    #
+    # z_sort = Ya.sort_dict(z)
+    # with open(f"all_sort_id_{user}.json", "w") as write_file:
+    #     json.dump(z_sort, write_file)
 
     # pprint(z)
     # print(len(z))
