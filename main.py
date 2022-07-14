@@ -4,7 +4,7 @@ import json
 from pprint import pprint
 import yadisk
 from tqdm import tqdm
-
+from datetime import datetime
 
 
 class VK:
@@ -28,18 +28,23 @@ class VK:
         # time.sleep(0.3)
         return response.json()
 
-    def foto_dict(self, list_album): # словарь вида {like_id:[url,size(Wxh)]}
+    def foto_dict(self, list_album):  # словарь вида {like_id:[url,size(Wxh)]}
         dict_foto = {}
         print('Ищем фото')
-        for album in list_album: # альбомы на стене и в профайле
+        for album in list_album:  # альбомы на стене и в профайле
             offset = 0
             total = (self.user_foto(album))['response']['count']
             with tqdm(total=total, ncols=80, desc=album) as pbar:
-                while True:   #
+                while True:  #
                     user_foto = self.user_foto(album, offset)
-                    for item in (user_foto['response']['items']): # заходим в гр. одинаковых фотог.
+                    for item in (user_foto['response']['items']):  # заходим в гр. одинаковых фотог.
                         like = item['likes']['count']
                         post_id = item['id']
+
+                        timestamp = item['date']
+                        value = datetime.fromtimestamp(timestamp)
+                        date = (value.strftime('%Y_%m_%d_%H_%M_%S'))
+
                         max_size = 0
                         pbar.update()
                         for foto in item['sizes']:
@@ -47,14 +52,15 @@ class VK:
                             if foto_size >= max_size:  # выбираем самое большое из группы одинаковых
                                 max_size = foto_size
                                 dict_foto[f'like{like}_id{post_id}'] = [foto['url'], foto_size]
+                                # dict_foto[f'like{like}_date_{date}'] = [foto['url'], foto_size]
 
                     offset += len(user_foto['response']['items'])
                     if offset >= user_foto['response']['count']:
                         break
         return dict_foto
 
-class My_Ya(yadisk.YaDisk):
 
+class My_Ya(yadisk.YaDisk):
 
     def get_headers(self):
         return {
@@ -62,13 +68,13 @@ class My_Ya(yadisk.YaDisk):
             'Authorization': 'OAuth {}'.format(self.token)
         }
 
-    def sort_dict(self, dict_foto): # сортировка словаря вида {key:[val1,val2]} по убыванию val2
+    def sort_dict(self, dict_foto):  # сортировка словаря вида {key:[val1,val2]} по убыванию val2
         temp_d = {x: y[1] for x, y in dict_foto.items()}
         sorted_keys = sorted(temp_d, key=temp_d.get, reverse=True)
         return {x: dict_foto[x] for x in sorted_keys}
 
     def upload_file(self, dict_foto, path, num=5):
-        path = (f'Py/Pictures_user_id{path}')
+        path = f'Py/Pictures_user_id{path}'
         try:
             self.remove(path)
             time.sleep(5)
@@ -82,25 +88,25 @@ class My_Ya(yadisk.YaDisk):
                 # print (foto_name,url[0])
                 if count > num:
                     break
-                self.upload_url(url[0], (f'{path}/{foto_name}.jpg')) #загр файла на Я диск
+                self.upload_url(url[0], f'{path}/{foto_name}.jpg')  # загр файла на Я диск
                 count += 1
                 pbar.update()
 
-    def get_file_list(self,path):
+    def get_file_list(self, path):
         total = 1
         offset = 0
-        list_total =[]
+        list_total = []
         print('Создаём Json файл')
         while offset < total:
-            path_full = (f'Py/Pictures_user_id{path}')
+            path_full = f'Py/Pictures_user_id{path}'
             headers = self.get_headers()
             upload_url = "https://cloud-api.yandex.net/v1/disk/resources"
-            params = {"path": path_full, 'offset':offset, "fields": "_embedded.items.name, "
-                                                       "_embedded.items.size, _embedded.total"}
+            params = {"path": path_full, 'offset': offset, "fields": "_embedded.items.name, "
+                                                                     "_embedded.items.size, _embedded.total"}
             response = requests.get(upload_url, params=params, headers=headers)
-            list1 = response.json()['_embedded'] ['items']
+            list1 = response.json()['_embedded']['items']
             list_total.extend(list1)
-            total = response.json()['_embedded'] ['total']
+            total = response.json()['_embedded']['total']
             offset = len(list_total)
             # print (list1)
             # print(len(list1))
@@ -110,25 +116,19 @@ class My_Ya(yadisk.YaDisk):
         print(f'Создан файл: id_{path}.json')
 
 
-
-
-
-
-
-
 if __name__ == '__main__':
     with open('token/tokenYA.txt', 'r', ) as fileYA:
         tokenYA = fileYA.read()
     with open('token/tokenVK.txt', 'r', ) as fileVK:
         tokenVK = fileVK.read()
 
-
-    user_id1 = '14409657'
-    user_id2 = '4078953'
-    user_id3 = '-116129052'
-    user_id4 = '-206639135'
-
-    user = user_id2
+    # user_id1 = '14409657'
+    # user_id2 = '4078953'
+    # user_id3 = '-116129052'
+    # user_id4 = '-206639135'
+    #
+    # user = user_id2
+    user = input('User_ID: ')
 
     vk1 = VK(tokenVK, user)
     Ya = My_Ya(token=tokenYA)
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     # z_sort = Ya.sort_dict(z)
     # with open(f"all_sort_id_{user}.json", "w") as write_file:
     #     json.dump(z_sort, write_file)
-
+    #
     # pprint(z)
     # print(len(z))
     num = int(input(f'Найдено {len(z)} фото. Сколько загрузить самых больших (WxH): '))
