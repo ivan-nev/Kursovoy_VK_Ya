@@ -2,7 +2,6 @@ import requests
 import time
 import json
 from pprint import pprint
-# from progress.bar import IncrementalBar
 import yadisk
 from tqdm import tqdm
 
