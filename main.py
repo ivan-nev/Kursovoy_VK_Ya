@@ -57,12 +57,18 @@ class VK:
 class My_Ya(yadisk.YaDisk):
 
     def upload_file(self, dict_foto, path):
-        path = (f'Py/Picture_user_id{path}')
+        path = (f'Py/Pictures_user_id{path}')
         try:
             self.remove(path)
+            time.sleep(0.5)
         except yadisk.exceptions.PathNotFoundError:
             pass
         self.mkdir(path)
+        for foto_name, url in dict_foto.items():
+            print (foto_name,url[0])
+            self.upload_url(url[0], (f'{path}/{foto_name}.jpg'))
+
+
 
 
 
@@ -88,6 +94,6 @@ if __name__ == '__main__':
     # y = (vk3.user_foto(['wall'], 0))
     # pprint(y)
     z = vk1.foto_dict([ 'wall', 'profile'])
-    # pprint(z)
-    # print(len(z))
+    pprint(z)
+    print(len(z))
     y2.upload_file(z, user_id1)
