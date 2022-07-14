@@ -1,9 +1,11 @@
 import requests
 import time
+import json
 from pprint import pprint
-from progress.bar import IncrementalBar
+# from progress.bar import IncrementalBar
 import yadisk
-import progressbar
+from tqdm import tqdm
+
 
 
 class VK:
@@ -26,47 +28,80 @@ class VK:
         response = requests.get(url, params={**self.params, **params})
         return response.json()
 
-    def foto_dict(self, list_album):
+    def foto_dict(self, list_album): # словарь вида {like_id:[url,size(Wxh)]}
         dict_foto = {}
-        for album in list_album:
+        for album in list_album: # альбомы на стене и в профайле
             offset = 0
-            # bar = IncrementalBar(album, max=int(self.user_foto(album)['response']['count']))
-            while True:
+            while True:   #
                 user_foto = self.user_foto(album, offset)
-
-                # time.sleep(0.04)
-                for item in (user_foto['response']['items']):
-
+                for item in (user_foto['response']['items']): # заходим в гр. одинаковых фотог.
                     like = item['likes']['count']
                     post_id = item['id']
                     max_size = 0
-                    bar.next()
                     for foto in item['sizes']:
                         foto_size = int(foto['height']) * int(foto['width'])
-                        if foto_size > max_size:
+                        if foto_size > max_size:  # выбираем самое большое из группы одинаковых
                             max_size = foto_size
                             dict_foto[f'like{like}_id{post_id}'] = [foto['url'], foto_size]
 
                 offset += len(user_foto['response']['items'])
-                # print (offset)
                 if offset >= user_foto['response']['count']:
-                    bar.finish()
                     break
         return dict_foto
 
 class My_Ya(yadisk.YaDisk):
 
-    def upload_file(self, dict_foto, path):
+
+    def get_headers(self):
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': 'OAuth {}'.format(self.token)
+        }
+
+    def sort_dict(self, dict_foto): # сортировка словаря вида {key:[val1,val2]} по убыванию val2
+        temp_d = {x: y[1] for x, y in dict_foto.items()}
+        sorted_keys = sorted(temp_d, key=temp_d.get, reverse=True)
+        return {x: dict_foto[x] for x in sorted_keys}
+
+    def upload_file(self, dict_foto, path, num=5):
         path = (f'Py/Pictures_user_id{path}')
         try:
             self.remove(path)
-            time.sleep(0.5)
+            time.sleep(5)
         except yadisk.exceptions.PathNotFoundError:
             pass
         self.mkdir(path)
-        for foto_name, url in dict_foto.items():
-            print (foto_name,url[0])
+        time.sleep(0.5)
+        count = 1
+        for foto_name, url in tqdm(self.sort_dict(dict_foto).items()):
+            # print (foto_name,url[0])
+            if count > num:
+                break
             self.upload_url(url[0], (f'{path}/{foto_name}.jpg'))
+            count += 1
+
+    def get_file_list(self,path):
+        total = 1
+        offset = 0
+        list_total =[]
+        while offset < total:
+            path_full = (f'Py/Pictures_user_id{path}')
+            headers = self.get_headers()
+            upload_url = "https://cloud-api.yandex.net/v1/disk/resources"
+            params = {"path": path_full, 'offset':offset, "fields": "_embedded.items.name, "
+                                                       "_embedded.items.size, _embedded.total"}
+            response = requests.get(upload_url, params=params, headers=headers)
+            list1 = response.json()['_embedded'] ['items']
+            list_total.extend(list1)
+            total = response.json()['_embedded'] ['total']
+            offset = len(list_total)
+            print (list1)
+            print(len(list1))
+
+        with open(f"id_{path}.json", "w") as write_file:
+            json.dump(list_total, write_file)
+
+
 
 
 
@@ -79,21 +114,20 @@ if __name__ == '__main__':
     with open('token/tokenVK.txt', 'r', ) as fileVK:
         tokenVK = fileVK.read()
 
-    bar = IncrementalBar('album', max=100)
+
     user_id1 = '2632492'
-    vk1 = VK(tokenVK, user_id1)
     user_id2 = '19020548'
-    vk2 = VK(tokenVK, user_id2)
-    user_id3 = '-107913084'
-    vk3 = VK(tokenVK, user_id3)
+    user_id3 = '-116129052'
 
-    y2 = My_Ya(token=tokenYA)
-    # y2.upload('main.py','test-dir/main.py')
+    user = user_id3
 
-    # print(vk2.users_info())
-    # y = (vk3.user_foto(['wall'], 0))
-    # pprint(y)
+    vk1 = VK(tokenVK, user)
+    Ya = My_Ya(token=tokenYA)
+
     z = vk1.foto_dict([ 'wall', 'profile'])
-    pprint(z)
+    # pprint(z)
     print(len(z))
-    y2.upload_file(z, user_id1)
+    num = int(input(f'Найдено {len(z)} фото. Сколько загрузить самых больших (WxH): '))
+    Ya.upload_file(z, user, num)
+    time.sleep(2)
+    Ya.get_file_list(user)
