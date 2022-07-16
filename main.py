@@ -1,10 +1,8 @@
 import requests
 import time
 import json
-from pprint import pprint
 import yadisk
 from tqdm import tqdm
-from datetime import datetime
 
 
 class VK:
@@ -41,9 +39,9 @@ class VK:
                         like = item['likes']['count']
                         post_id = item['id']
 
-                        timestamp = item['date']
-                        value = datetime.fromtimestamp(timestamp)
-                        date = (value.strftime('%Y_%m_%d_%H_%M_%S'))
+                        # timestamp = item['date']
+                        # value = datetime.fromtimestamp(timestamp)
+                        # date = (value.strftime('%Y_%m_%d_%H_%M_%S'))
 
                         max_size = 0
                         pbar.update()
@@ -74,6 +72,10 @@ class My_Ya(yadisk.YaDisk):
         return {x: dict_foto[x] for x in sorted_keys}
 
     def upload_file(self, dict_foto, path, num=5):
+        try:
+            self.mkdir('Py')
+        except yadisk.exceptions.DirectoryExistsError:
+            pass
         path = f'Py/Pictures_user_id{path}'
         try:
             self.remove(path)
@@ -108,8 +110,6 @@ class My_Ya(yadisk.YaDisk):
             list_total.extend(list1)
             total = response.json()['_embedded']['total']
             offset = len(list_total)
-            # print (list1)
-            # print(len(list1))
 
         with open(f"id_{path}.json", "w") as write_file:
             json.dump(list_total, write_file)
@@ -122,28 +122,10 @@ if __name__ == '__main__':
     with open('token/tokenVK.txt', 'r', ) as fileVK:
         tokenVK = fileVK.read()
 
-    # user_id1 = '14409657'
-    # user_id2 = '4078953'
-    # user_id3 = '-116129052'
-    # user_id4 = '-206639135'
-    #
-    # user = user_id2
     user = input('User_ID: ')
-
     vk1 = VK(tokenVK, user)
     Ya = My_Ya(token=tokenYA)
-
     z = vk1.foto_dict(['wall', 'profile'])
-
-    # with open(f"all_id_{user}.json", "w") as write_file:
-    #     json.dump(z, write_file)
-    #
-    # z_sort = Ya.sort_dict(z)
-    # with open(f"all_sort_id_{user}.json", "w") as write_file:
-    #     json.dump(z_sort, write_file)
-    #
-    # pprint(z)
-    # print(len(z))
     num = int(input(f'Найдено {len(z)} фото. Сколько загрузить самых больших (WxH): '))
     Ya.upload_file(z, user, num)
     time.sleep(2)
